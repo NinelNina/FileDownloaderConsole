@@ -25,21 +25,21 @@ namespace FileDownloaderConsole
 
             int i = 1;
 
-            Task task1 = Task.Run(() =>
+            Task task1 = Task.Run(async () =>
             {
                 foreach (string url in inputData.fileUrl)
             {
-                    fileDownloader.Downloader(url, Convert.ToString(i) + ".jpg");
+                    await fileDownloader.Downloader(url, Convert.ToString(i) + ".jpg");
                     Console.WriteLine(i + ".jpg");
                     i++;
             }
                 state = true;
-            });                             
-
-            Task.WaitAll(task1);
+            });
+            task1.Wait();
+           
             if (state)
             {
-                Console.WriteLine("Файл загружен.");
+                Console.WriteLine("Файлы загружены.");
                 Console.ReadKey();
             }
         }
@@ -87,7 +87,7 @@ namespace FileDownloaderConsole
         {
 
         }
-        public async void Downloader(string url, string pathToSave)
+        public async Task Downloader(string url, string pathToSave)
         {
             using (HttpClient client = new HttpClient())
             {
