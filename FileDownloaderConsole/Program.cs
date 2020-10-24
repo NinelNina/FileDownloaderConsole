@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Net.Http;
@@ -79,8 +79,6 @@ namespace FileDownloaderConsole
 
     class FileDownloader : IFileDownloader
     {
-        public Dictionary<string, string> Files { get; set; }
-
         public void SetDegreeOfParallelism(int degreeOfParallelism)
         {
 
