@@ -27,9 +27,9 @@ namespace FileDownloaderConsole
 
             Task task1 = Task.Run(async () =>
             {
-                foreach (string url in inputData.fileUrl)
+                foreach (string url in inputData.fileUrls)
             {
-                    await fileDownloader.Downloader(url, Convert.ToString(i) + ".jpg");
+                    await fileDownloader.DownloadFile(url, Convert.ToString(i) + ".jpg");
                     Console.WriteLine(i + ".jpg");
                     i++;
             }
@@ -51,20 +51,17 @@ namespace FileDownloaderConsole
         public string PathToSave { get; set; }
         public string PathToOpen { get; set; }
 
-        public List<string> fileId;
-        public List<string> fileUrl;
+        public List<string> fileUrls;
         public void Input()
         {
-            fileId = new List<string>(10);
-            fileUrl = new List<string>(10);
+            fileUrls = new List<string>(10);
             
             using (StreamReader reader = new StreamReader(File.Open(PathToOpen, FileMode.Open)))
             {
                 int i = 1;
                 while (!reader.EndOfStream)
                 {
-                    fileId.Add(Convert.ToString(i));
-                    fileUrl.Add(reader.ReadLine());
+                    fileUrls.Add(reader.ReadLine());
                     i++;
                 }
             }
@@ -87,7 +84,7 @@ namespace FileDownloaderConsole
         {
 
         }
-        public async Task Downloader(string url, string pathToSave)
+        public async Task DownloadFile(string url, string pathToSave)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -95,12 +92,12 @@ namespace FileDownloaderConsole
                 {
                     if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
                     {
-                        using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                        byte[] content = await response.Content.ReadAsByteArrayAsync();
+                        
+                        using (FileStream file = File.Create(pathToSave))
                         {
-                            var image = new Bitmap(Image.FromStream(streamToReadFrom));
-                            image.Save(pathToSave, ImageFormat.Jpeg);
-
-                        }
+                            file.Write(content, 0, content.Length);
+                        } 
                     }
                 }
             }
