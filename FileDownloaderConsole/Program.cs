@@ -1,27 +1,23 @@
 using System;
-using System.Drawing;
 using System.IO;
 using System.Net.Http;
 using System.Collections;
 using System.Threading.Tasks;
-using System.Threading;
 using System.Collections.Generic;
 
 namespace FileDownloaderConsole
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             FileDownloader fileDownloader = new FileDownloader();
             fileDownloader.SetDegreeOfParallelism(4);
-            
-            
+                        
             bool state = false;
+
             InputData inputData = new InputData();
-
             inputData.PathToOpen = "url-list.txt";
-
             inputData.Input();
 
             int i = 1;
@@ -43,11 +39,8 @@ namespace FileDownloaderConsole
                     {
                         while (fileDownloader.fileUrlQueue.Count != 0)
                         {
-                            string url;
-                            string path;
-
-                            url = Convert.ToString(fileDownloader.fileUrlQueue.Dequeue());
-                            path = Convert.ToString(fileDownloader.filePathQueue.Dequeue());
+                            string url = Convert.ToString(fileDownloader.fileUrlQueue.Dequeue());
+                            string path = Convert.ToString(fileDownloader.filePathQueue.Dequeue());
 
                             await Task.Run(async () =>
                             {
@@ -57,7 +50,6 @@ namespace FileDownloaderConsole
                         }
                     }
                 }
-
               state = true;  
             });
 
@@ -69,13 +61,11 @@ namespace FileDownloaderConsole
                 Console.ReadKey();
             }
         }
-
     }
 
     class InputData
     {
         public string PathToOpen { get; set; }
-
         public List<string> fileUrls;
         public void Input()
         {
