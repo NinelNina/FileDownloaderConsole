@@ -13,6 +13,10 @@ namespace FileDownloaderConsole
     {
         static void Main(string[] args)
         {
+            FileDownloader fileDownloader = new FileDownloader();
+            fileDownloader.SetDegreeOfParallelism(4);
+            
+            
             bool state = false;
             InputData inputData = new InputData();
 
@@ -20,20 +24,43 @@ namespace FileDownloaderConsole
 
             inputData.Input();
 
-            FileDownloader fileDownloader = new FileDownloader();
-
             int i = 1;
+
+            fileDownloader.filePathQueue = new Queue(fileDownloader.degree);
+            fileDownloader.fileUrlQueue = new Queue(fileDownloader.degree);
 
             Task task1 = Task.Run(async () =>
             {
-                foreach (string url in inputData.fileUrls)
+                for (int j = inputData.fileUrls.Count; j != 0; j--)
                 {
-                    await fileDownloader.DownloadFile(url, Convert.ToString(i) + ".jpg");
-                    Console.WriteLine(i + ".jpg");
-                    i++;
+                    if (fileDownloader.fileUrlQueue.Count < fileDownloader.degree)
+                    {
+                        fileDownloader.AddFileToDownloadingQueue(Convert.ToString(i), inputData.fileUrls[i - 1], inputData.fileUrls[i - 1]);
+                        i++;
+                    }
+
+                    if (fileDownloader.fileUrlQueue.Count == fileDownloader.degree || (j < fileDownloader.degree) && (fileDownloader.fileUrlQueue.Count < 4) && (Convert.ToDouble(inputData.fileUrls.Count) / 4 != 0))
+                    {
+                        while (fileDownloader.fileUrlQueue.Count != 0)
+                        {
+                            string url;
+                            string path;
+
+                            url = Convert.ToString(fileDownloader.fileUrlQueue.Dequeue());
+                            path = Convert.ToString(fileDownloader.filePathQueue.Dequeue());
+
+                            await Task.Run(async () =>
+                            {
+                                await fileDownloader.DownloadFile(url, path);
+                                Console.WriteLine(path);
+                            });
+                        }
+                    }
                 }
-                state = true;
+
+              state = true;  
             });
+
             task1.Wait();
 
             if (state)
@@ -47,7 +74,6 @@ namespace FileDownloaderConsole
 
     class InputData
     {
-        public string PathToSave { get; set; }
         public string PathToOpen { get; set; }
 
         public List<string> fileUrls;
@@ -75,15 +101,22 @@ namespace FileDownloaderConsole
 
     class FileDownloader : IFileDownloader
     {
-        Queue fileIdQueue;
-        Queue fileUrlQueue;
-        Queue filePathQueue;
+        public Queue fileUrlQueue;
+        public Queue filePathQueue;
+        public int degree;
         public void SetDegreeOfParallelism(int degreeOfParallelism)
         {
-
+            degree = degreeOfParallelism;
         }
         public void AddFileToDownloadingQueue(string fileId, string url, string pathToSave)
         {
+            fileUrlQueue.Enqueue(url);
+
+            int index = pathToSave.LastIndexOf('.');
+            string fileExtension = pathToSave.Substring(index, pathToSave.Length - index);
+            pathToSave = fileId + fileExtension;
+
+            filePathQueue.Enqueue(pathToSave);
 
         }
         public async Task DownloadFile(string url, string pathToSave)
