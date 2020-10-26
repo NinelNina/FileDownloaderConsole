@@ -35,7 +35,7 @@ namespace FileDownloaderConsole
                         i++;
                     }
 
-                    if (fileDownloader.fileUrlQueue.Count == fileDownloader.degree || (j < fileDownloader.degree) && (fileDownloader.fileUrlQueue.Count < 4) && (Convert.ToDouble(inputData.fileUrls.Count) / 4 != 0))
+                    if (fileDownloader.fileUrlQueue.Count == fileDownloader.degree || (j < fileDownloader.degree) && (fileDownloader.fileUrlQueue.Count < fileDownloader.degree) && (Convert.ToDouble(inputData.fileUrls.Count) / fileDownloader.degree != 0))
                     {
                         while (fileDownloader.fileUrlQueue.Count != 0)
                         {
