@@ -3,7 +3,6 @@ using System.Drawing;
 using System.IO;
 using System.Net.Http;
 using System.Collections;
-using System.Drawing.Imaging;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
@@ -28,15 +27,15 @@ namespace FileDownloaderConsole
             Task task1 = Task.Run(async () =>
             {
                 foreach (string url in inputData.fileUrls)
-            {
+                {
                     await fileDownloader.DownloadFile(url, Convert.ToString(i) + ".jpg");
                     Console.WriteLine(i + ".jpg");
                     i++;
-            }
+                }
                 state = true;
             });
             task1.Wait();
-           
+
             if (state)
             {
                 Console.WriteLine("Файлы загружены.");
@@ -55,7 +54,7 @@ namespace FileDownloaderConsole
         public void Input()
         {
             fileUrls = new List<string>(10);
-            
+
             using (StreamReader reader = new StreamReader(File.Open(PathToOpen, FileMode.Open)))
             {
                 int i = 1;
@@ -76,6 +75,9 @@ namespace FileDownloaderConsole
 
     class FileDownloader : IFileDownloader
     {
+        Queue fileIdQueue;
+        Queue fileUrlQueue;
+        Queue filePathQueue;
         public void SetDegreeOfParallelism(int degreeOfParallelism)
         {
 
@@ -93,11 +95,11 @@ namespace FileDownloaderConsole
                     if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
                     {
                         byte[] content = await response.Content.ReadAsByteArrayAsync();
-                        
+
                         using (FileStream file = File.Create(pathToSave))
                         {
                             file.Write(content, 0, content.Length);
-                        } 
+                        }
                     }
                 }
             }
