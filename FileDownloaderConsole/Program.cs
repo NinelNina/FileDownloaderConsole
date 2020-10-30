@@ -16,10 +16,11 @@ namespace FileDownloaderConsole
             FileDownloader fileDownloader = new FileDownloader();
                         
             InputData inputData = new InputData();
-            inputData.PathToOpen = @"I:\Programming\FileDownloaderConsole\FileDownloaderConsole\bin\Debug\url-list.txt";
+            inputData.PathToOpen = "url-list.txt";
             inputData.Input();
 
-            inputData.PathToSave = @"E:\Pictures\";
+            Console.Write("¬ведите путь дл€ сохранени€ файлов: ");
+            inputData.PathToSave = Console.ReadLine();
 
             int i = 1;
 
@@ -28,6 +29,8 @@ namespace FileDownloaderConsole
                 fileDownloader.AddFileToDownloadingQueue(Convert.ToString(i), url, inputData.PathToSave);
                 i++;
             }
+
+            Console.ReadKey();
         }
     }
 
@@ -62,6 +65,13 @@ namespace FileDownloaderConsole
     {
         private ConcurrentQueue<FileData> fileDownloadQueue;
         private bool taskState;
+
+        public FileDownloader()
+        {
+            fileDownloadQueue = new ConcurrentQueue<FileData>();
+            taskState = false;
+        }
+
         struct FileData
         {
             public string url;
@@ -73,8 +83,6 @@ namespace FileDownloaderConsole
         }
         public void AddFileToDownloadingQueue(string fileId, string url, string pathToSave)
         {
-            fileDownloadQueue = new ConcurrentQueue<FileData>();
-
             FileData data = new FileData();
             FileData dataForSaving;
 
@@ -82,10 +90,9 @@ namespace FileDownloaderConsole
 
             int index = url.LastIndexOf('.');
             string fileExtension = url.Substring(index, url.Length - index);
-            data.pathToSave = pathToSave + fileId + fileExtension;
+            data.pathToSave = pathToSave + @"\" + fileId + fileExtension;
 
             fileDownloadQueue.Enqueue(data);
-            Console.WriteLine(fileId);
 
             if (!taskState)
             {
@@ -102,7 +109,6 @@ namespace FileDownloaderConsole
                     }
                     taskState = false;
                 });
-                dequeueTask.Wait();
             }      
         }
 
