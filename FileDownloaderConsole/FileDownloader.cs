@@ -68,8 +68,6 @@ namespace FileDownloaderConsole
 
         private async Task DownloadFile(string url, string pathToSave)
         {
-            using (client)
-            {
                 using (HttpResponseMessage response = await client.GetAsync(url))
                 {
                     if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
@@ -91,7 +89,7 @@ namespace FileDownloaderConsole
                         }
                     }
                 }
-            }
+           
         }
     }
 }
