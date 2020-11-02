@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileDownloaderConsole
@@ -15,16 +16,15 @@ namespace FileDownloaderConsole
     class FileDownloader : IFileDownloader
     {
         private ConcurrentQueue<FileData> fileDownloadQueue;
-        private bool isDownloadingStarted;
+        private int threadsCounter;
         private HttpClient client;
         private int degreeOfParallelism;
         public FileDownloader()
         {
             fileDownloadQueue = new ConcurrentQueue<FileData>();
-            isDownloadingStarted = false;
+            threadsCounter = 0;
             client = new HttpClient();
         }
-
         struct FileData
         {
             public string fileId;
@@ -37,6 +37,11 @@ namespace FileDownloaderConsole
         }
         public void AddFileToDownloadingQueue(string fileId, string url, string pathToSave)
         {
+            if (threadsCounter == 0)
+            {
+                SetDegreeOfParallelism(4);
+            }
+
             FileData data = new FileData();
             FileData dataForSaving;
 
@@ -48,9 +53,9 @@ namespace FileDownloaderConsole
 
             fileDownloadQueue.Enqueue(data);
 
-            if (!isDownloadingStarted)
+            if (threadsCounter < degreeOfParallelism)
             {
-                isDownloadingStarted = true;
+                threadsCounter++;
 
                 Task dequeueTask = Task.Run(async () =>
                 {
@@ -61,37 +66,34 @@ namespace FileDownloaderConsole
 
                         await DownloadFile(dataForSaving.url, dataForSaving.pathToSave);
                     }
-                    isDownloadingStarted = false;
+                        Interlocked.Decrement(ref threadsCounter);
                 });
             }
         }
-
         private async Task DownloadFile(string url, string pathToSave)
         {
-            using (client)
+            using (HttpResponseMessage response = await client.GetAsync(url))
             {
-                using (HttpResponseMessage response = await client.GetAsync(url))
+                if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
                 {
-                    if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
+                    using (var content = await response.Content.ReadAsStreamAsync())
                     {
-                        using (var content = await response.Content.ReadAsStreamAsync())
+                        int fileSize = (int)content.Length;
+                        int temp = 1;
+                        using (FileStream file = File.Create(pathToSave))
                         {
-                            int fileSize = (int)content.Length;
-                            int temp = 1;
-                            using (FileStream file = File.Create(pathToSave))
+                            while (temp != 0)
                             {
-                                while (temp != 0)
-                                {
-                                    byte[] buf = new byte[8096];
+                                byte[] buf = new byte[8096];
 
-                                    temp = await content.ReadAsync(buf, 0, buf.Length);
-                                    await file.WriteAsync(buf, 0, buf.Length);
-                                }
+                                temp = await content.ReadAsync(buf, 0, buf.Length);
+                                await file.WriteAsync(buf, 0, buf.Length);
                             }
                         }
                     }
                 }
             }
+
         }
     }
 }
