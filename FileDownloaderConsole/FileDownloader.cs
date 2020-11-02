@@ -15,22 +15,25 @@ namespace FileDownloaderConsole
     class FileDownloader : IFileDownloader
     {
         private ConcurrentQueue<FileData> fileDownloadQueue;
-        private bool taskState;
-
+        private bool isDownloadingStarted;
+        private HttpClient client;
+        private int degreeOfParallelism;
         public FileDownloader()
         {
             fileDownloadQueue = new ConcurrentQueue<FileData>();
-            taskState = false;
+            isDownloadingStarted = false;
+            client = new HttpClient();
         }
 
         struct FileData
         {
+            public string fileId;
             public string url;
             public string pathToSave;
         }
-        public void SetDegreeOfParallelism(int degreeOfParallelism)
+        public void SetDegreeOfParallelism(int degreeOfParallel)
         {
-
+            degreeOfParallelism = degreeOfParallel;
         }
         public void AddFileToDownloadingQueue(string fileId, string url, string pathToSave)
         {
@@ -45,9 +48,9 @@ namespace FileDownloaderConsole
 
             fileDownloadQueue.Enqueue(data);
 
-            if (!taskState)
+            if (!isDownloadingStarted)
             {
-                taskState = true;
+                isDownloadingStarted = true;
 
                 Task dequeueTask = Task.Run(async () =>
                 {
@@ -58,14 +61,14 @@ namespace FileDownloaderConsole
 
                         await DownloadFile(dataForSaving.url, dataForSaving.pathToSave);
                     }
-                    taskState = false;
+                    isDownloadingStarted = false;
                 });
             }
         }
 
         private async Task DownloadFile(string url, string pathToSave)
         {
-            using (HttpClient client = new HttpClient())
+            using (client)
             {
                 using (HttpResponseMessage response = await client.GetAsync(url))
                 {
@@ -89,7 +92,6 @@ namespace FileDownloaderConsole
                     }
                 }
             }
-
         }
     }
 }
