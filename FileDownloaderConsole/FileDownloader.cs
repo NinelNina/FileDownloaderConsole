@@ -19,13 +19,11 @@ namespace FileDownloaderConsole
         private int threadsCounter;
         private HttpClient client;
         private int degreeOfParallelism;
-        private object lockObject = new object();
         public FileDownloader()
         {
             fileDownloadQueue = new ConcurrentQueue<FileData>();
             threadsCounter = 0;
             client = new HttpClient();
-            degreeOfParallelism = 4;
         }
         struct FileData
         {
@@ -35,54 +33,40 @@ namespace FileDownloaderConsole
         }
         public void SetDegreeOfParallelism(int degreeOfParallel)
         {
-            if (threadsCounter != 0)
-            {
-                throw new Exception("Загрузка файлов уже запущена.");
-            }
-            else
-            {
-                degreeOfParallelism = degreeOfParallel;
-            }
+            degreeOfParallelism = degreeOfParallel;
         }
         public void AddFileToDownloadingQueue(string fileId, string url, string pathToSave)
         {
+            if (threadsCounter == 0)
+            {
+                SetDegreeOfParallelism(4);
+            }
+
             FileData data = new FileData();
             FileData dataForSaving;
 
             data.url = url;
-            data.fileId = fileId;
-            data.pathToSave = FileExtension.GetFileExtension(url, fileId, pathToSave);
+
+            int index = url.LastIndexOf('.');
+            string fileExtension = url.Substring(index, url.Length - index);
+            data.pathToSave = pathToSave + @"\" + fileId + fileExtension;
 
             fileDownloadQueue.Enqueue(data);
 
-            bool canStartThread = false;
-
-            lock (lockObject)
-            { 
-                if (threadsCounter < degreeOfParallelism)
-                {
-                    canStartThread = true;
-                } 
-            }
-
-            if (canStartThread)
+            if (threadsCounter < degreeOfParallelism)
             {
-                Interlocked.Increment(ref threadsCounter);
+                threadsCounter++;
 
                 Task dequeueTask = Task.Run(async () =>
                 {
                     while (fileDownloadQueue.Count != 0)
                     {
-                        var isAddedInQueue = fileDownloadQueue.TryDequeue(out dataForSaving);
+                        fileDownloadQueue.TryDequeue(out dataForSaving);
+                        Console.WriteLine(dataForSaving.pathToSave);
 
-                        if (isAddedInQueue)
-                        {
-                            Console.WriteLine(dataForSaving.pathToSave);
-
-                            await DownloadFile(dataForSaving.url, dataForSaving.pathToSave);
-                        }
+                        await DownloadFile(dataForSaving.url, dataForSaving.pathToSave);
                     }
-                    Interlocked.Decrement(ref threadsCounter);
+                        Interlocked.Decrement(ref threadsCounter);
                 });
             }
         }
@@ -95,20 +79,21 @@ namespace FileDownloaderConsole
                     using (var content = await response.Content.ReadAsStreamAsync())
                     {
                         int fileSize = (int)content.Length;
-                        int bytesRead = 1;
+                        int temp = 1;
                         using (FileStream file = File.Create(pathToSave))
                         {
-                            while (bytesRead != 0)
+                            while (temp != 0)
                             {
                                 byte[] buf = new byte[8096];
 
-                                bytesRead = await content.ReadAsync(buf, 0, buf.Length);
+                                temp = await content.ReadAsync(buf, 0, buf.Length);
                                 await file.WriteAsync(buf, 0, buf.Length);
                             }
                         }
                     }
                 }
             }
+
         }
     }
 }
