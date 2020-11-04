@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-
 namespace FileDownloaderConsole
 {
     class InputData

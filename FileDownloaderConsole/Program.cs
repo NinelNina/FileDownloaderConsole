@@ -15,12 +15,12 @@ namespace FileDownloaderConsole
             Console.Write("¬ведите путь дл€ сохранени€ файлов: ");
             inputData.PathToSave = Console.ReadLine();
 
-            int i = 1;
+            int index = 1;
 
             foreach (string url in inputData.fileUrls)
             {
-                fileDownloader.AddFileToDownloadingQueue(Convert.ToString(i), url, inputData.PathToSave);
-                i++;
+                fileDownloader.AddFileToDownloadingQueue(Convert.ToString(index), url, inputData.PathToSave);
+                index++;
             }
 
             Console.ReadKey();
