@@ -11,6 +11,8 @@ namespace FileDownloaderConsole
     {
         void SetDegreeOfParallelism(int degreeOfParallelism);
         void AddFileToDownloadingQueue(string fileId, string url, string pathToSave);
+        event Action<string> OnDownloaded;
+        event Action<string, Exception> OnFailed;
     }
 
     class FileDownloader : IFileDownloader
@@ -19,13 +21,62 @@ namespace FileDownloaderConsole
         private int threadsCounter;
         private HttpClient client;
         private int degreeOfParallelism;
-        private object lockObject = new object();
+
+        private object lockObject1 = new object();
+        private object lockObject2 = new object();
+        private object lockObject3 = new object();
+
+        private int fileDownloadedCount;
+        private int fileUndownloadedCount;
+        private int numberOfFiles = InputData.numberOfFiles;
+        private double downloadedFiles;
+
+        public event Action<string> OnDownloaded;
+        public event Action<string, Exception> OnFailed;
+
         public FileDownloader()
         {
             fileDownloadQueue = new ConcurrentQueue<FileData>();
+
             threadsCounter = 0;
+
             client = new HttpClient();
+
             degreeOfParallelism = 4;
+            fileDownloadedCount = 0;
+            fileUndownloadedCount = 0;
+
+            OnDownloaded += Message;
+            OnFailed += Message;
+
+        }
+
+        private void Downloading(string fileId)
+        {
+            fileDownloadedCount++;
+
+            downloadedFiles = (Convert.ToDouble(fileDownloadedCount) / Convert.ToDouble(numberOfFiles)) * 100;
+            downloadedFiles = (int)Math.Round(downloadedFiles);
+
+            OnDownloaded.Invoke($"Файл <<{fileId}>> загружен\nЗагружено {downloadedFiles}%");
+
+            if (downloadedFiles == 100)
+            {
+                OnDownloaded.Invoke($"Загружено: {fileDownloadedCount}. С ошибками: {fileUndownloadedCount}.");
+            }
+        }
+        private void DownloadError(string fileId, Exception exception)
+        {
+            fileUndownloadedCount++;
+        }
+        private static void Message(string message)
+        {
+            Console.WriteLine(message);
+        }        
+        private static void Message(string message, Exception exception)
+        {
+            //Console.WriteLine(message);
+            //Console.WriteLine(exception);
         }
         struct FileData
         {
@@ -55,7 +106,7 @@ namespace FileDownloaderConsole
 
             fileDownloadQueue.Enqueue(data);
 
-            lock (lockObject)
+            lock (lockObject1)
             {
                 if (threadsCounter < degreeOfParallelism)
                 {
@@ -69,17 +120,32 @@ namespace FileDownloaderConsole
 
                             if (isAddedInQueue)
                             {
-                                Console.WriteLine(dataForSaving.pathToSave);
+                                await DownloadFile(dataForSaving.fileId, dataForSaving.url, dataForSaving.pathToSave);
 
-                                await DownloadFile(dataForSaving.url, dataForSaving.pathToSave);
+                                lock (lockObject2)
+                                {
+                                    Downloading(dataForSaving.fileId);
+                                }
+                            }
+                            else
+                            {
+                                Exception downloadException = new Exception("Error getting an object from the queue");
+                                
+                                lock (lockObject3)
+                                {
+                                    DownloadError(fileId, downloadException);
+                                }
                             }
                         }
-                        threadsCounter--;
+                        lock (lockObject1)
+                        {
+                            threadsCounter--;
+                        }
                     });
                 }
             }
         }
-        private async Task DownloadFile(string url, string pathToSave)
+        private async Task DownloadFile(string fileId, string url, string pathToSave)
         {
             using (HttpResponseMessage response = await client.GetAsync(url))
             {
@@ -89,14 +155,34 @@ namespace FileDownloaderConsole
                     {
                         int fileSize = (int)content.Length;
                         int bytesRead = 1;
-                        using (FileStream file = File.Create(pathToSave))
-                        {
-                            while (bytesRead != 0)
-                            {
-                                byte[] buf = new byte[8096];
 
-                                bytesRead = await content.ReadAsync(buf, 0, buf.Length);
-                                await file.WriteAsync(buf, 0, buf.Length);
+                        try
+                        {
+                            using (FileStream file = File.Create(pathToSave))
+                            {
+                                while (bytesRead != 0)
+                                {
+                                    byte[] buf = new byte[8096];
+                                    try 
+                                    {
+                                        bytesRead = await content.ReadAsync(buf, 0, buf.Length);
+                                        await file.WriteAsync(buf, 0, buf.Length);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        lock (lockObject3)
+                                        {
+                                            DownloadError(fileId, e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            lock(lockObject3)
+                            {
+                                DownloadError(fileId, e); 
                             }
                         }
                     }

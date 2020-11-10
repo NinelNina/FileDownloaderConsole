@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading;
 
 namespace FileDownloaderConsole
 {
@@ -6,11 +8,11 @@ namespace FileDownloaderConsole
     {
         static void Main()
         {
-            FileDownloader fileDownloader = new FileDownloader();
-                        
             InputData inputData = new InputData();
             inputData.PathToOpen = "url-list.txt";
             inputData.Input();
+
+            FileDownloader fileDownloader = new FileDownloader();
 
             Console.Write("¬ведите путь дл€ сохранени€ файлов: ");
             inputData.PathToSave = Console.ReadLine();
