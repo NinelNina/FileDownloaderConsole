@@ -8,7 +8,6 @@ namespace FileDownloaderConsole
         private int fileDownloadedCount = 0;
         private int fileUndownloadedCount = 0;
         private double downloadedFiles;
-        private double undownloadedFiles;
         private double numberOfFiles = InputData.numberOfFiles;
 
         public void CountDownloadedFiles(string message)
@@ -18,9 +17,14 @@ namespace FileDownloaderConsole
             downloadedFiles = (Convert.ToDouble(fileDownloadedCount) / Convert.ToDouble(numberOfFiles)) * 100;
             downloadedFiles = (int)Math.Round(downloadedFiles);
 
-            Console.WriteLine($"Загрузка файла <<{message}>>");
+            Console.WriteLine($"Загрузка файла <<{message}>> {downloadedFiles}%");
 
-            if (downloadedFiles + undownloadedFiles == 100)
+            ShowNumberOfDownloadedFiles();
+        }
+
+        private void ShowNumberOfDownloadedFiles()
+        {
+            if (fileDownloadedCount + fileUndownloadedCount == numberOfFiles)
             {
                 Console.WriteLine($"Загружено файлов: {fileDownloadedCount}. Загружено с ошибками: {fileUndownloadedCount}");
             }
@@ -32,13 +36,7 @@ namespace FileDownloaderConsole
 
             Log.WriteToLog(message, exception);
 
-            undownloadedFiles = (Convert.ToDouble(fileUndownloadedCount) / Convert.ToDouble(numberOfFiles)) * 100;
-            undownloadedFiles = (int)Math.Round(undownloadedFiles);
-
-            if (downloadedFiles + undownloadedFiles == 100)
-            {
-                Console.WriteLine($"Загружено файлов: {fileDownloadedCount}. Загружено с ошибками: {fileUndownloadedCount}");
-            }
+            ShowNumberOfDownloadedFiles();
         }
     }
 }
