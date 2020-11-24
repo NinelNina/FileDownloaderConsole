@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileDownloaderConsole
@@ -22,14 +21,7 @@ namespace FileDownloaderConsole
         private HttpClient client;
         private int degreeOfParallelism;
 
-        private object lockObject1 = new object();
-        private object lockObject2 = new object();
-        private object lockObject3 = new object();
-
-        private int fileDownloadedCount;
-        private int fileUndownloadedCount;
-        private int numberOfFiles = InputData.numberOfFiles;
-        private double downloadedFiles;
+        private object lockObject = new object();
 
         public event Action<string> OnDownloaded;
         public event Action<string, Exception> OnFailed;
@@ -43,41 +35,17 @@ namespace FileDownloaderConsole
             client = new HttpClient();
 
             degreeOfParallelism = 4;
-            fileDownloadedCount = 0;
-            fileUndownloadedCount = 0;
-
-            OnDownloaded += Message;
-            OnFailed += Message;
-
         }
 
-        private void Downloading(string fileId)
+        private void DownloadingSuccess(string fileId)
         {
-            fileDownloadedCount++;
-
-            downloadedFiles = (Convert.ToDouble(fileDownloadedCount) / Convert.ToDouble(numberOfFiles)) * 100;
-            downloadedFiles = (int)Math.Round(downloadedFiles);
-
-            OnDownloaded.Invoke($"Файл <<{fileId}>> загружен\nЗагружено {downloadedFiles}%");
-
-            if (downloadedFiles == 100)
-            {
-                OnDownloaded.Invoke($"Загружено: {fileDownloadedCount}. С ошибками: {fileUndownloadedCount}.");
-            }
+            OnDownloaded.Invoke(fileId);
         }
-        private void DownloadError(string fileId, Exception exception)
+        private void DownloadingError(string fileId, Exception exception)
         {
-            fileUndownloadedCount++;
+            OnFailed.Invoke(fileId, exception);
         }
-        private static void Message(string message)
-        {
-            Console.WriteLine(message);
-        }        
-        private static void Message(string message, Exception exception)
-        {
-            //Console.WriteLine(message);
-            //Console.WriteLine(exception);
-        }
+
         struct FileData
         {
             public string fileId;
@@ -88,7 +56,7 @@ namespace FileDownloaderConsole
         {
             if (threadsCounter != 0)
             {
-                throw new Exception("Загрузка файлов уже запущена.");
+                throw new Exception("Загрузка файлов уже запущена");
             }
             else
             {
@@ -100,13 +68,24 @@ namespace FileDownloaderConsole
             FileData data = new FileData();
             FileData dataForSaving;
 
+            if (!Directory.Exists(pathToSave))
+            {
+                throw new Exception("Указанный путь не существует");
+            }
+
             data.url = url;
             data.fileId = fileId;
-            data.pathToSave = FileExtension.GetFileExtension(url, fileId, pathToSave);
-
+            try
+            {
+                data.pathToSave = FileExtension.GetFileExtension(url, fileId, pathToSave);
+            }
+            catch (Exception exception)
+            {
+                DownloadingError(fileId, exception);
+            }
             fileDownloadQueue.Enqueue(data);
 
-            lock (lockObject1)
+            lock (lockObject)
             {
                 if (threadsCounter < degreeOfParallelism)
                 {
@@ -121,23 +100,15 @@ namespace FileDownloaderConsole
                             if (isAddedInQueue)
                             {
                                 await DownloadFile(dataForSaving.fileId, dataForSaving.url, dataForSaving.pathToSave);
-
-                                lock (lockObject2)
-                                {
-                                    Downloading(dataForSaving.fileId);
-                                }
                             }
                             else
                             {
-                                Exception downloadException = new Exception("Error getting an object from the queue");
-                                
-                                lock (lockObject3)
-                                {
-                                    DownloadError(fileId, downloadException);
-                                }
+                                Exception downloadException = new Exception("Ошибка получения объекта из очереди");
+
+                                DownloadingError(fileId, downloadException);
                             }
                         }
-                        lock (lockObject1)
+                        lock (lockObject)
                         {
                             threadsCounter--;
                         }
@@ -160,32 +131,36 @@ namespace FileDownloaderConsole
                         {
                             using (FileStream file = File.Create(pathToSave))
                             {
-                                while (bytesRead != 0)
+                                try
                                 {
-                                    byte[] buf = new byte[8096];
-                                    try 
+                                    while (bytesRead != 0)
                                     {
+                                        byte[] buf = new byte[8096];
+
                                         bytesRead = await content.ReadAsync(buf, 0, buf.Length);
                                         await file.WriteAsync(buf, 0, buf.Length);
                                     }
-                                    catch (Exception e)
-                                    {
-                                        lock (lockObject3)
-                                        {
-                                            DownloadError(fileId, e);
-                                        }
-                                    }
+
+                                    DownloadingSuccess(fileId);
+                                }
+                                catch (Exception exception)
+                                {
+                                    DownloadingError(fileId, exception);
+                                
                                 }
                             }
                         }
-                        catch (Exception e)
+                        catch (Exception exception)
                         {
-                            lock(lockObject3)
-                            {
-                                DownloadError(fileId, e); 
-                            }
+                            DownloadingError(fileId, exception);
                         }
                     }
+                }
+                else
+                {
+                    Exception exception = new Exception("Невозможно подключиться к серверу");
+
+                    DownloadingError(fileId, exception);
                 }
             }
         }

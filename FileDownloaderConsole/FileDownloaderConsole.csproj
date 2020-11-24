@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CountDownloadingFiles.cs" />
     <Compile Include="FileDownloader.cs" />
     <Compile Include="FileExtension.cs" />
     <Compile Include="InputData.cs" />
