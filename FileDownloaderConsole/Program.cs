@@ -6,21 +6,53 @@ namespace FileDownloaderConsole
     {
         static void Main()
         {
-            FileDownloader fileDownloader = new FileDownloader();
-                        
             InputData inputData = new InputData();
-            inputData.PathToOpen = "url-list.txt";
-            inputData.Input();
 
-            Console.Write("Введите путь для сохранения файлов: ");
+            Console.Write("Введите путь к файлу: ");
+
+            inputData.PathToOpen = Console.ReadLine();
+
+            try
+            {
+                inputData.Input();
+            }
+            catch (Exception exception)
+            {
+                Log.WriteToLog(exception);
+                Console.WriteLine("Ошибка!" + exception.Message);
+
+                Console.ReadKey();
+                return;
+            }
+
+            Console.Write("Введите путь для сохранения: ");
             inputData.PathToSave = Console.ReadLine();
 
-            int i = 1;
+            FileDownloader fileDownloader = new FileDownloader();
 
-            foreach (string url in inputData.fileUrls)
+            CountDownloadingFiles downloadingFiles = new CountDownloadingFiles();
+
+            fileDownloader.OnDownloaded += downloadingFiles.CountDownloadedFiles;
+            fileDownloader.OnFailed += downloadingFiles.CountUndownloadedFiles;
+
+            int index = 1;
+
+            try
             {
-                fileDownloader.AddFileToDownloadingQueue(Convert.ToString(i), url, inputData.PathToSave);
-                i++;
+                foreach (string url in inputData.fileUrls)
+                {
+
+                    fileDownloader.AddFileToDownloadingQueue(Convert.ToString(index), url, inputData.PathToSave);
+                    index++;
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.WriteToLog(exception);
+                Console.WriteLine("Ошибка!" + exception.Message);
+
+                Console.ReadKey();
+                return;
             }
 
             Console.ReadKey();

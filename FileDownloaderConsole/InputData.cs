@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
-
 
 namespace FileDownloaderConsole
 {
@@ -15,14 +15,26 @@ namespace FileDownloaderConsole
         {
             fileUrls = new List<string>(10);
 
-            using (StreamReader reader = new StreamReader(File.Open(PathToOpen, FileMode.Open)))
+            StreamReader reader;
+
+            try
             {
-                int i = 1;
-                while (!reader.EndOfStream)
+                reader = new StreamReader(File.Open(PathToOpen, FileMode.Open));
+
+                using (reader)
                 {
-                    fileUrls.Add(reader.ReadLine());
-                    i++;
+                    int i = 0;
+                    while (!reader.EndOfStream)
+                    {
+                        fileUrls.Add(reader.ReadLine());
+                        i++;
+                    }
+                    numberOfFiles = i;
                 }
+            }
+            catch (Exception exception)
+            {
+                throw new Exception(exception.Message, exception);
             }
         }
         public string GetFolderName(string folderName)
