@@ -2,7 +2,7 @@
 
 namespace FileDownloaderConsole
 {
-    class FileExtension
+    public class FileExtension
     {
         public static string GetFileExtension(string url, string fileId, string pathToSave)
         {

@@ -1,14 +1,15 @@
-﻿using System;
+using System;
 
 namespace FileDownloaderConsole
 {
-    class CountDownloadingFiles
+    public class CountDownloadingFiles
     {
        
         private int fileDownloadedCount = 0;
         private int fileUndownloadedCount = 0;
         private double downloadedFiles;
         private double numberOfFiles = InputData.numberOfFiles;
+
 
         public void CountDownloadedFiles(string message)
         {

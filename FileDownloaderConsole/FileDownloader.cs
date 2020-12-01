@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FileDownloaderConsole
 {
-    interface IFileDownloader
+    public interface IFileDownloader
     {
         void SetDegreeOfParallelism(int degreeOfParallelism);
         void AddFileToDownloadingQueue(string fileId, string url, string pathToSave);
@@ -14,7 +14,7 @@ namespace FileDownloaderConsole
         event Action<string, Exception> OnFailed;
     }
 
-    class FileDownloader : IFileDownloader
+    public class FileDownloader : IFileDownloader
     {
         private ConcurrentQueue<FileData> fileDownloadQueue;
         private int threadsCounter;

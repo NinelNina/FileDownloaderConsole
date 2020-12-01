@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 
 namespace FileDownloaderConsole
 {
-    class Log
+    public class Log
     {
         private static object syncObject = new object();
         public static void WriteToLog(string fileId, Exception exception)
