@@ -8,7 +8,7 @@ namespace FileDownloaderConsole
         private int fileDownloadedCount = 0;
         private int fileUndownloadedCount = 0;
         private double downloadedFiles;
-        private double numberOfFiles = InputData.numberOfFiles;
+        private double numberOfFiles;
 
 
         public void CountDownloadedFiles(string message)
